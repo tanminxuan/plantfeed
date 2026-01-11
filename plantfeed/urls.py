@@ -25,4 +25,5 @@ urlpatterns = [
     #path('api-auth/', include('rest_framework.urls')),
     path('api-auth/', include('rest_framework.urls')),
     path('plantlink/Login/', views.authenticate_user, name='authenticate_user'),
+    path('bugs/', include('bugs.urls')),
 ]

@@ -58,6 +58,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'mathfilters',
     'corsheaders',
+    'bugs',
     
 ]
 
@@ -222,9 +223,17 @@ CSRF_TRUSTED_ORIGINS = ['http://*', 'https://*', 'https://989b-2405-3800-8bb-a34
 ALLOWED_ORIGINS = CSRF_TRUSTED_ORIGINS.copy()
 
 # Cookies settings
-CSRF_COOKIE_SECURE = env('CSRF_COOKIE_SECURE')
-SESSION_COOKIE_SECURE = env('SESSION_COOKIE_SECURE')
-
+#CSRF_COOKIE_SECURE = env('CSRF_COOKIE_SECURE')
+#SESSION_COOKIE_SECURE = env('SESSION_COOKIE_SECURE')
+if DEBUG:
+    # DEVELOPMENT: Allow cookies over standard HTTP
+    CSRF_COOKIE_SECURE = False
+    SESSION_COOKIE_SECURE = False
+else:
+    # PRODUCTION: Require HTTPS for cookies (Security)
+    CSRF_COOKIE_SECURE = env.bool('CSRF_COOKIE_SECURE', default=True)
+    SESSION_COOKIE_SECURE = env.bool('SESSION_COOKIE_SECURE', default=True)
+    
 X_FRAME_OPTIONS = 'ALLOWALL'  # Allows all domains to embed your content
 
-
+LOGIN_URL = 'Login'
