@@ -41,7 +41,6 @@ class UIBug(Bug):
         db_column='bug_id'
     )
 
-    # UPDATED: Increased max_length from 100/50 to 255 to prevent crashes
     browser_name = models.CharField(max_length=255)
     browser_version = models.CharField(max_length=255) 
     
@@ -94,3 +93,23 @@ class SecurityBug(Bug):
     class Meta:
         db_table = 'security_bugs'
         managed = False
+
+# DAO Class
+class BugDAO:
+    """Data Access Object for Database interactions"""
+    def find_all(self, user_email=None):
+        if user_email:
+            return Bug.objects.filter(reporter__Email=user_email)
+        return Bug.objects.all()
+
+    def find_by_id(self, bug_id):
+        try:
+            return Bug.objects.get(pk=bug_id)
+        except Bug.DoesNotExist:
+            return None
+
+    def update(self, bug):
+        if bug:
+            bug.save()
+            return True
+        return False

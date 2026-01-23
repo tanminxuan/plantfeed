@@ -29,7 +29,6 @@ def report_bug(request):
 
     return render(request, 'report_bug.html', {'form': form, 'person': user})
 
-# --- UPDATE THIS FUNCTION ---
 def report_success(request):
     # 1. We must get the user again so the Navbar links work
     if 'Email' not in request.session:

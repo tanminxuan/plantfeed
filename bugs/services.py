@@ -1,10 +1,9 @@
 from abc import ABC, abstractmethod
 from django.core.exceptions import ObjectDoesNotExist
-from .models import Bug
+from .models import Bug, UIBug, SecurityBug, FunctionalityBug, BugDAO
 from .factories import UIBugFactory, FunctionalityBugFactory, SecurityBugFactory
 
 # --- 1. Subsystems (The underlying tools) ---
-
 class LogService:
     """Handles system logging"""
     def log_info(self, message):
@@ -28,24 +27,7 @@ class StorageService:
         else:
             print("[STORAGE]: No file to upload.")
 
-class BugDAO:
-    """Data Access Object for Database interactions"""
-    def find_all(self, user_email=None):
-        if user_email:
-            return Bug.objects.filter(reporter__Email=user_email)
-        return Bug.objects.all()
-
-    def find_by_id(self, bug_id):
-        try:
-            return Bug.objects.get(pk=bug_id)
-        except Bug.DoesNotExist:
-            return None
-
-    def update(self, bug):
-        if bug:
-            bug.save()
-            return True
-        return False
+# BugDAO CLASS REMOVED (Moved to models.py)
 
 # --- 2. The Observer Pattern Layer ---
 
@@ -55,57 +37,60 @@ class Observer(ABC):
     def update(self, event_type, bug_data):
         pass
 
-# Concrete Observer A: Handles Email Notifications [cite: 93]
+# Concrete Observer A: Handles Email Notifications
 class EmailObserver(Observer):
     def __init__(self):
         self._service = NotificationService()
 
     def update(self, event_type, bug_data):
+        # UPDATED: Now includes [bug_data.bug_type] in the subject
         if event_type == "BUG_CREATED":
             self._service.send_email(
                 "admin@plantfeed.com", 
-                f"New Bug Alert: {bug_data.title}"
+                f"New Bug Alert [{bug_data.bug_type}]: {bug_data.title}"
             )
         elif event_type == "STATUS_UPDATED":
             # Check if reporter exists to avoid errors
             if hasattr(bug_data, 'reporter') and bug_data.reporter:
                 self._service.send_email(
                     bug_data.reporter.Email, 
-                    f"Update: Your bug is now {bug_data.status}"
+                    f"Update: Your {bug_data.bug_type} bug is now {bug_data.status}"
                 )
 
-# Concrete Observer B: Handles Audit Logging [cite: 96]
+# Concrete Observer B: Handles Audit Logging
 class AuditObserver(Observer):
     def __init__(self):
         self._logger = LogService()
 
     def update(self, event_type, bug_data):
-        # Logs every event regardless of type
-        self._logger.log_info(f"AUDIT: Event '{event_type}' occurred on Bug ID {bug_data.pk}")
+        # UPDATED: Now includes (Type: {bug_data.bug_type}) in the log
+        self._logger.log_info(
+            f"AUDIT: Event '{event_type}' occurred on Bug ID {bug_data.pk} (Type: {bug_data.bug_type})"
+        )
 
 # --- 3. The Service Layer (The Subject) ---
 
 class BugService:
     """
-    Acts as the 'Subject' in the Observer Pattern[cite: 71].
+    Acts as the 'Subject' in the Observer Pattern.
     It coordinates the Factory and notifies Observers.
     """
     def __init__(self):
         self.storage = StorageService()
-        self.dao = BugDAO()
+        self.dao = BugDAO() # This now uses the imported class from models.py
         
-        # List to hold observers [cite: 72]
+        # List to hold observers
         self._observers = []
 
-    # Attach an observer to the list [cite: 73]
+    # Attach an observer to the list
     def attach(self, observer):
         self._observers.append(observer)
 
-    # Detach an observer from the list [cite: 74]
+    # Detach an observer from the list
     def detach(self, observer):
         self._observers.remove(observer)
 
-    # Notify all observers of a change [cite: 78]
+    # Notify all observers of a change
     def notify(self, event_type, bug_data):
         for observer in self._observers:
             observer.update(event_type, bug_data)
@@ -137,7 +122,6 @@ class BugService:
             bug = factory.create_bug(data, user)
 
             # 4. Notify Observers (Observer Pattern)
-            # Instead of calling logger/email directly, we just say "Something happened!"
             self.notify("BUG_CREATED", bug)
             
             return bug
